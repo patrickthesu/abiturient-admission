@@ -77,7 +77,7 @@ class examList (QWidget):
                 return
         
         
-        self.layout.addWidget ( QLabel ( "Ваш список екзаменов:" ) )
+        self.layout.addWidget ( QLabel ( "Ваш примерный список предметов для екзаменов:" ) )
         for exam in connect.getExams (selectedGradesIds):
             self.layout.addWidget ( QLabel ( exam ) )
 

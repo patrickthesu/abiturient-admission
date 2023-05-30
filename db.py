@@ -15,10 +15,14 @@ class Connection ():
 
         self.cursor = self.connection.cursor()
 
-    def insertExamInstance (examid, cabinetid, profile, date):
-        self.cursor.execute (f"INSERT INTO exam_instances (cabinet_id, exam_id, profile, date) VALUES ({examid}, {cabinetid}, {profile}, {date});")
+    def insertExamInstance (examid, profile, date, max_students = 20):
+        self.cursor.execute (f"INSERT INTO exam_instances (exam_id, profile, max_students, date) VALUES ({examid}, {profile}, {max_students}, {date});")
         self.connection.commit ()
         return True
+
+    def getRequiredExams (self):
+        self.cursor.execute ( "SELECT exam_id, profile  FROM grade_exam_set ;" )
+        return self.cursor.fetchall()
 
     def getExamGradetype (self):
         self.cursor.execute ( "SELECT exams.name, exams.id, gradetypes.name, gradetypes.id, profile  FROM grade_exam_set JOIN exams ON exams.id = grade_exam_set.exam_id JOIN gradetypes ON grade_exam_set.gradetype_id=gradetypes.id;" )
@@ -54,8 +58,8 @@ class Connection ():
         self.cursor.execute ( f"SELECT * FROM languages;" )
         return self.cursor.fetchall()
     
-    def insertStudent (self, name, school, phone, adress):
-        self.cursor.execute ( f"INSERT INTO students (name, school_id, phone, adress) VALUES ('{name}', {school}, '{phone}', '{adress}') RETURNING id;" )
+    def insertStudent (self, name, school, phone, adress, status = 1):
+        self.cursor.execute ( f"INSERT INTO students (name, school_id, phone, adress, status_id) VALUES ('{name}', {school}, '{phone}', '{adress}', {status}) RETURNING id;" )
         self.connection.commit ()
         print ( "Succesfully inserted!" )
         return self.cursor.fetchone()
@@ -81,6 +85,10 @@ class Connection ():
 
     def getGradeTypes (self):
         self.cursor.execute ( f"SELECT * FROM gradetypes;" )
+        return self.cursor.fetchall()
+
+    def getNotExamedStudents (self):
+        self.cursor.execute ( f"SELECT * FROM students WHERE status_id = 1 or status_id = null;" )
         return self.cursor.fetchall()
 
     def getGradesByStudent ( self, student_id ):
@@ -109,14 +117,30 @@ class Connection ():
 
         return out
 
-    def makeAutoAllExams (self):
-        self.clearExams ()
-        exams = self.getAllExams ()
+    def deleteExamInstances (self):
+        self.cursor.execute (f"DELETE FROM exam_instances;")
+        self.connection.commit ()
+        return True
+
+
+    def makeAutoAllExams (self, date):
+        self.deleteExamInstances ()
+
+        for examset in self.getRequiredExams ():
+            self.insertExamInstance ( examset[0], examse[1], date)
+            date.days += 1
+
         cabinets = []
-        for cabinet in self.getCabinets ():
-            cabinets.append ( cabinet[0] )
-        for key in exams:
-            self.makeCabinetsExamList ( cabinets, exams[key], key.split(" ")[0], key.split(" ")[1] )
+        for cabinet in self.getCabinetsa ():
+            print (cabinet[0])
+            cabinets.append (cabinet[0])
+
+        students = []
+        for student in self.getNotExamedStudents ():
+            print (student[0])
+            students.append (student[0])
+
+    #def setExamInstanceForStudent ()
 
     def getExamsCabinetsList ( self, student_id ):
         self.cursor.execute (f"SELECT exams.name, profile, cabinets.name, mark FROM examcabinets INNER JOIN cabinets ON cabinets.id = examcabinets.cabinet_id INNER JOIN exams ON examcabinets.exam_id = exams.id WHERE student_id = {student_id} ;")
@@ -278,23 +302,22 @@ class Connection ():
 
     def getExams (self, gradeList):
         l = ""
-        #print ( gradeList )
         for gradeId in gradeList:
             if gradeId == None: continue
             l += str ( gradeId ) + ","
         
         l = l[:-1]
+
         self.cursor.execute ( f"""
-            SELECT exams.name, profile
-            FROM examlinks 
-            INNER join exams ON examlinks.exam_id = exams.id
-            INNER join gradetypes ON examlinks.grade_id = gradetypes.id
-            WHERE grade_id in ({l});
+            SELECT exams.name, profile FROM grade_exam_set 
+            JOIN exams ON exams.id = grade_exam_set.exam_id
+            WHERE gradetype_id in ({l});
         """ )
+
         examList = self.cursor.fetchall()
         out = []
         profile = []
-        #print (examList)
+
         for exam in examList:
             if not ( exam[0] in out ):
                 out.append ( exam[0] )
@@ -302,6 +325,7 @@ class Connection ():
 
         for i in profile:
             out[i] += " профильный" 
+
         return out
 
     def getCabinets ( self ):

@@ -14,6 +14,41 @@ class passwordInput (QWidget):
     def __call__ (self):
         return self.edit.text()
 
+class idInput (QWidget):
+    def __init__ (self):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout (self.layout)
+
+        self.edit = QLineEdit ()
+        self.layout.addWidget (self.edit)
+        self.edit.editingFinished.connect ( self.check )
+
+        self.errorLabel = QLabel ( "Такого id не существует" )
+        self.errorLabel.setStyleSheet ( "color: red;" )
+
+        self.layout.addWidget ( self.errorLabel )
+        self.errorLabel.hide ()
+
+    def check (self):
+        self.errorLabel.hide ()
+        try:
+            int ( self.edit.text() )
+        except:
+            return self.error()
+        return True
+        
+    def error (self):
+        self.errorLabel.show ()
+        return False
+
+    def __call__ (self):
+        if not self.check():
+            return False
+        return int (self.edit.text())
+
+
+
 
 class nameInput (QWidget):
     def __init__ (self):

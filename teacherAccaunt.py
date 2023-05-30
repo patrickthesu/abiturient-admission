@@ -58,7 +58,6 @@ class teacherLogin ( QWidget):
         self.close()
 
 
-
 class insertExamGradetype (QWidget):
     def __init__ (self, function = lambda: print ("Succesfully added insertExamGradetype!")): 
         super (QWidget, self).__init__()
@@ -125,6 +124,7 @@ class deleteExamGradetype (QWidget):
         except Exception as err:
             print ("ERROR while deleting gradetype")
             print (err)
+
 
 class deleteCabinet (QWidget):
     def __init__ (self, function = lambda: print ("Succesfully deleted!")): 
@@ -243,8 +243,7 @@ class SetMark ( QWidget ):
         super (QWidget, self).__init__()
         self.layout = QVBoxLayout ()
         self.setLayout (self.layout)
-
-        self.examId = examId
+self.examId = examId
         self.profile = profile
         self.student = student
         self.function = function
