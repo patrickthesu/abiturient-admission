@@ -54,7 +54,9 @@ class searchWidget (QWidget):
 
     def check (self):
         self.errorLabel.hide ()
+        print (123)
         if not self.selected: return error()
+        print (321)
         return True
 
     def error (self, text):
@@ -68,8 +70,8 @@ class searchWidget (QWidget):
         self.searchLine.setText (self.selected.text())
         #self.fillLayout ()
 
-    def currentData ():
-        if check (): return self.selected.additionalText
+    def currentData (self):
+        if self.check (): return self.selected.additionalText
         return False
          
     def search (self):
@@ -124,8 +126,8 @@ class languageSelect (QWidget):
         self.layout.addWidget ( self.errorLabel )
  
         for language in connect.getLanguages ():
-            self.primaryList.addItem ( language[2], language[1] )
-            self.foreignList.addItem ( language[2], language[1] )
+            self.primaryList.addItem ( language[2], language[0] )
+            self.foreignList.addItem ( language[2], language[0] )
 
         self.errorLabel.hide()
 
@@ -139,13 +141,16 @@ class languageSelect (QWidget):
         self.errorLabel.hide()
         try:
             if self.primaryList.currentData() == self.foreignList.currentData(): return self.error ( "Языки не могут быть одинаковыми" )
-        except:
+        except Exception as err:
+            print (err)
             return False
         return True
 
     def __call__ (self):
+        print (self.check())
         if not self.check ():
             return False
+
         try:
             if self.primaryList.currentData() != self.foreignList.currentData():return { 
                 "primary_id" : self.primaryList.currentData(),

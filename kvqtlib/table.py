@@ -4,12 +4,16 @@ class tableWidget ( QWidget ):
     def setTable ( self, columns, vertical = True ):
         if vertical:
             self.table.setColumnCount ( len ( columns ) )
-            self.table.setRowCount ( len ( columns[0] ) )
+            if len (columns) == 0: self.table.setRowCount (0)
+            else:self.table.setRowCount ( len ( columns[0] ) )
         else:
-            self.table.setColumnCount ( len ( columns[0] ) )
             self.table.setRowCount ( len ( columns ) )
+            if len (columns) == 0: self.table.setColumnCount (0)
+            else: self.table.setColumnCount ( len ( columns[0] ) )
+ 
 
         for i in range ( 0, len ( columns ) ):
+            if len (columns) == 0: break
             for itemI in range ( 0, len ( columns[i] ) ):
                 if vertical:
                     self.table.setItem ( itemI, i, QTableWidgetItem ( str ( columns[i][itemI] ) ) )  

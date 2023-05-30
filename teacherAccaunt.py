@@ -1,60 +1,15 @@
 #!/usr/bin/env python3
 
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox
-from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QDateEdit 
+from PyQt6.QtCore import pyqtSlot, QDate
 from kvqtlib.table import tableWidget
+from datetime import datetime
 import sys
 import db
 
 connect = db.Connection ()
 
-class passwordInput (QWidget):
-    def __init__ (self):
-        super (QWidget, self).__init__()
-        self.layout = QVBoxLayout ()
-        self.setLayout (self.layout)
-
-        self.edit = QLineEdit ()
-        self.edit.setEchoMode(QLineEdit.EchoMode.Password)
- 
-        self.layout.addWidget (self.edit)
-
-    def __call__ (self):
-        return self.edit.text()
-
-class nameInput (QWidget):
-    def __init__ (self):
-        super (QWidget, self).__init__()
-        self.layout = QVBoxLayout ()
-        self.setLayout (self.layout)
-
-        self.edit = QLineEdit ()
-        self.layout.addWidget (self.edit)
-        self.edit.editingFinished.connect ( self.check )
-
-        self.errorLabel = QLabel ( "ФИО некорректное" )
-        self.errorLabel.setStyleSheet ( "color: red;" )
-
-        self.layout.addWidget ( self.errorLabel )
-        self.errorLabel.hide ()
-
-    def check (self):
-        self.errorLabel.hide ()
-        name = self.edit.text().strip().split()
-        if len ( name ) < 2: return self.error ( "Неправильное полное имя" )
-        return True
-        
-    def error (self, text):
-        self.errorLabel.setText (text)
-        self.errorLabel.show ()
-        return False
-
-    def __call__ (self):
-        if not self.check():
-            return False
-        return self.edit.text()
-
-
+from components.inputs import nameInput, passwordInput
 
 class teacherLogin ( QWidget):
     def __init__ (self, function = lambda: print("Not setted function") ):
@@ -62,9 +17,9 @@ class teacherLogin ( QWidget):
         self.layout = QVBoxLayout ()
         self.setLayout (self.layout)
 
-        self.function = function
-
+        self.function = function 
         self.layout.addWidget (QLabel ("Вход в личный кабинет"))
+        self.resize(500,200)
 
         self.errorLabel = QLabel ( "Такого пользователя нет в базе" )
         self.errorLabel.setStyleSheet ( "color: yellow;" )
@@ -83,7 +38,7 @@ class teacherLogin ( QWidget):
 
     def login (self):
         self.errorLabel.hide ()
-        name = self.nameInput ()
+        name = self.nameInput () 
         if not name:
             print ( "ERROR incorrect name" )
             return False
@@ -94,9 +49,7 @@ class teacherLogin ( QWidget):
 
         try:
             teacher = connect.getTeacher ( name )
-            #print ( teacher )
             if password == teacher[0][2]: 
-                #print ( f"Teacher '{teacher}' logined" )
                 self.function ( teacher[0][0] )
             else:
                 return self.errorLabel.show() 
@@ -105,6 +58,217 @@ class teacherLogin ( QWidget):
         self.close()
 
 
+
+class insertExamGradetype (QWidget):
+    def __init__ (self, function = lambda: print ("Succesfully added insertExamGradetype!")): 
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+        
+        self.function = function
+
+        self.layout.addWidget ( QLabel ("Введите индекс экзамена:"))
+        self.exam = QSpinBox ()
+        self.exam = QSpinBox ()
+        self.exam.setMinimum (1) 
+        self.layout.addWidget (self.exam)
+
+        self.layout.addWidget ( QLabel ("Введите индекс профиля обучения:"))
+        self.gradetype = QSpinBox () 
+        self.gradetype.setMinimum (1)
+        self.layout.addWidget ( self.gradetype )
+
+        self.profile = QCheckBox ("Профильный")
+        self.layout.addWidget (self.profile)
+
+        self.submitButton = QPushButton ( "Добавить связку" )
+        self.submitButton.clicked.connect ( self.submit )
+        self.layout.addWidget ( self.submitButton )
+
+    def submit (self):
+        try:
+            connect.insertExamGradetype (self.exam.value (), self.gradetype.value (), self.profile.isChecked())
+            self.function ()
+            self.close()
+        except Exception as err:
+            print ("ERROR while pushing gradetype")
+            print (err)
+
+class deleteExamGradetype (QWidget):
+    def __init__ (self, function = lambda: print ("Succesfully added !")): 
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+        
+        self.function = function
+
+        self.layout.addWidget ( QLabel ("Введите индекс экзамена:"))
+        self.exam = QSpinBox ()
+        self.exam = QSpinBox ()
+        self.exam.setMinimum (1) 
+        self.layout.addWidget (self.exam)
+
+        self.layout.addWidget ( QLabel ("Введите индекс профиля обучения:"))
+        self.gradetype = QSpinBox ()
+        self.gradetype.setMinimum (1)
+        self.layout.addWidget ( self.gradetype )
+
+        self.submitButton = QPushButton ( "Удалить экзамен" )
+        self.submitButton.clicked.connect ( self.submit )
+        self.layout.addWidget ( self.submitButton )
+
+    def submit (self):
+        try:
+            connect.deleteExamGradetype (self.exam.value (), self.gradetype.value ())
+            self.function ()
+            self.close()
+        except Exception as err:
+            print ("ERROR while deleting gradetype")
+            print (err)
+
+class deleteCabinet (QWidget):
+    def __init__ (self, function = lambda: print ("Succesfully deleted!")): 
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+        
+        self.function = function
+
+        self.layout.addWidget ( QLabel ("Введите индекс каибинета:"))
+        self.cabinet = QSpinBox ()
+        self.cabinet.setMinimum (1) 
+        self.layout.addWidget (self.cabinet)
+
+        self.submitButton = QPushButton ( "Удалить кабинет" )
+        self.submitButton.clicked.connect ( self.submit )
+        self.layout.addWidget ( self.submitButton )
+
+    def submit (self):
+        try:
+            connect.deleteCabinet (self.cabinet.value ())
+            self.function ()
+            self.close()
+        except Exception as err:
+            print ("ERROR while deleting gradetype")
+            print (err)
+
+
+
+
+class showExamLists (QWidget):
+    def __init__ (self):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+
+        self.allExams = connect.getAllExamsNames ()
+        self.examsCombo = QComboBox ()
+
+        for exam in self.allExams:
+            self.examsCombo.addItem ( exam[0], userData = exam[1] )
+
+        examData = self.examsCombo.currentData ()
+        studentsList = connect.getFullExam ( examData [0], examData[1] )  
+        self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Адресс", "Кабинет"], columns = studentsList, vertical = False)
+        self.layout.addWidget (self.tableWidget)
+ 
+        self.layout.addWidget ( self.examsCombo )
+        self.examsCombo.currentIndexChanged.connect ( self.setTable )
+
+    def setTable ( self ):
+        examData = self.examsCombo.currentData ()
+        studentsList = connect.getFullExam ( examData [0], examData[1] ) 
+        self.tableWidget.setTable ( studentsList, vertical = False )
+
+
+class makeExamList ( QWidget ):
+    def __init__ ( self ):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+
+        self.layout.addWidget (QLabel ("Введите дату проведения:"))
+        
+        now = datetime.now()
+
+        self.date = QDateEdit(self)
+        self.date.setDate(QDate(now.year, now.month, now.day))
+        self.layout.addWidget (self.date)
+        
+        self.autoGenerateButton = QPushButton ( "Сгенерировать автоматически" )
+        self.autoGenerateButton.clicked.connect ( self.autoGenerate )
+        self.layout.addWidget ( self.autoGenerateButton )
+
+    def autoGenerate (self):
+        self.close ()
+        connect.makeAutoAllExams ()
+        self.examLists = showExamLists ()
+        self.examLists.show ()
+
+
+class cabinetsManage ( QWidget ):
+    def __init__ ( self ):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+
+        self.layout.addWidget ( QLabel ("Управление кабинетами") )
+        self.setWindowTitle ("Управление кабинетами")
+
+        self.cabinets = connect.getCabinets ()
+        self.tableWidget = tableWidget ( headers = ["ID", "Название", "Кол-во парт", "Учеников на парту"], columns = self.cabinets, vertical = False)
+        self.layout.addWidget (self.tableWidget)
+
+        self.insertCabinetButton = QPushButton ( "Добавить кабинет" )
+        self.insertCabinetButton.clicked.connect ( self.insertCabinet )
+        self.layout.addWidget ( self.insertCabinetButton )
+        self.deleteCabinetButton = QPushButton ( "Удалить кабинет" )
+        self.deleteCabinetButton.clicked.connect ( self.deleteCabinet )
+        self.layout.addWidget ( self.deleteCabinetButton )
+
+    def refresh (self):
+        self.cabinets = connect.getCabinets ()
+        self.tableWidget.setTable ( self.cabinets, False )
+
+    def insertCabinet (self):
+        self.insertCabinetWindow = insertCabinet ( function = lambda: self.refresh() )
+        self.insertCabinetWindow.show()
+
+    def deleteCabinet (self):
+        self.deleteCabinetWindow = deleteCabinet ( function = lambda: self.refresh() )
+        self.deleteCabinetWindow.show()
+
+class SetMark ( QWidget ):
+    def __init__ (self, examId, profile, student, function = lambda: print ( "ERROR: invalid SetMark init" )):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout (self.layout)
+
+        self.examId = examId
+        self.profile = profile
+        self.student = student
+        self.function = function
+
+        self.layout.addWidget ( QLabel ("Поставить оценку за екзамен для:") )
+        self.layout.addWidget ( QLabel (str ( self.student[1] )) )
+
+        self.markInput = QSpinBox ()
+        self.markInput.setMinimum (0)
+        self.markInput.setMaximum (100)
+        self.layout.addWidget ( self.markInput )
+
+        confirmButton = QPushButton ( "Подтвердить" )
+        confirmButton.clicked.connect ( self.setMark )
+        self.layout.addWidget (confirmButton)
+
+    def setMark (self):
+        try:
+            connect.setMark ( self.markInput.value(), self.student[0], self.examId, self.profile )
+            self.close ()
+            self.function ()
+        except Exception as err:
+            print ( "ERROR: on setting mark" )
+            print ( err )
 
 class insertCabinet ( QWidget ):
     def __init__ (self, function = lambda: print ("Succesfully added cabinet!")): 
@@ -150,103 +314,7 @@ class insertCabinet ( QWidget ):
             print ("ERROR while pushing")
             print (err)
 
-class showExamLists (QWidget):
-    def __init__ (self):
-        super (QWidget, self).__init__()
-        self.layout = QVBoxLayout ()
-        self.setLayout ( self.layout )
 
-        self.allExams = connect.getAllExamsNames ()
-        self.examsCombo = QComboBox ()
-
-        for exam in self.allExams:
-            self.examsCombo.addItem ( exam[0], userData = exam[1] )
-
-        examData = self.examsCombo.currentData ()
-        studentsList = connect.getFullExam ( examData [0], examData[1] )  
-        self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Адресс", "Кабинет"], columns = studentsList, vertical = False)
-        self.layout.addWidget (self.tableWidget)
- 
-        self.layout.addWidget ( self.examsCombo )
-        self.examsCombo.currentIndexChanged.connect ( self.setTable )
-
-    def setTable ( self ):
-        examData = self.examsCombo.currentData ()
-        studentsList = connect.getFullExam ( examData [0], examData[1] ) 
-        self.tableWidget.setTable ( studentsList, vertical = False )
-
-
-class makeExamList ( QWidget ):
-    def __init__ ( self ):
-        super (QWidget, self).__init__()
-        self.layout = QVBoxLayout ()
-        self.setLayout ( self.layout )
-
-        self.autoGenerateButton = QPushButton ( "Сгенерировать автоматически" )
-        self.autoGenerateButton.clicked.connect ( self.autoGenerate )
-        self.layout.addWidget ( self.autoGenerateButton )
-
-    def autoGenerate (self):
-        self.close ()
-        connect.makeAutoAllExams ()
-        self.examLists = showExamLists ()
-        self.examLists.show ()
-
-class cabinetsManage ( QWidget ):
-    def __init__ ( self ):
-        super (QWidget, self).__init__()
-        self.layout = QVBoxLayout ()
-        self.setLayout ( self.layout )
-
-        self.layout.addWidget ( QLabel ("Управление кабинетами") )
-        self.setWindowTitle ("Управление кабинетами")
-
-        self.cabinets = connect.getCabinets ()
-        self.tableWidget = tableWidget ( headers = ["ID", "Название", "Кол-во парт", "Учеников на парту"], columns = self.cabinets, vertical = False)
-        self.layout.addWidget (self.tableWidget)
-        self.insertCabinetButton = QPushButton ( "Добавить кабинет" )
-        self.insertCabinetButton.clicked.connect ( self.insertCabinet )
-        self.layout.addWidget ( self.insertCabinetButton )
-
-    def refresh (self):
-        self.cabinets = connect.getCabinets ()
-        self.tableWidget.setTable ( self.cabinets, False )
-
-    def insertCabinet ( self ):
-        self.insertCabinetWindow = insertCabinet ( function = lambda: self.refresh() )
-        self.insertCabinetWindow.show()
-
-class SetMark ( QWidget ):
-    def __init__ (self, examId, profile, student, function = lambda: print ( "ERROR: invalid SetMark init" )):
-        super (QWidget, self).__init__()
-        self.layout = QVBoxLayout ()
-        self.setLayout (self.layout)
-
-        self.examId = examId
-        self.profile = profile
-        self.student = student
-        self.function = function
-
-        self.layout.addWidget ( QLabel ("Поставить оценку за екзамен для:") )
-        self.layout.addWidget ( QLabel (str ( self.student[1] )) )
-
-        self.markInput = QSpinBox ()
-        self.markInput.setMinimum (0)
-        self.markInput.setMaximum (100)
-        self.layout.addWidget ( self.markInput )
-
-        confirmButton = QPushButton ( "Подтвердить" )
-        confirmButton.clicked.connect ( self.setMark )
-        self.layout.addWidget (confirmButton)
-
-    def setMark (self):
-        try:
-            connect.setMark ( self.markInput.value(), self.student[0], self.examId, self.profile )
-            self.close ()
-            self.function ()
-        except Exception as err:
-            print ( "ERROR: on setting mark" )
-            print ( err )
 
 class StudentsExamList ( QWidget ):
     def __init__ ( self, examList, examData, teacherId = None, endParent = lambda: print ( "ERROR: Invalid studentExamList init" ) ):
@@ -349,16 +417,53 @@ class Exam ( QWidget ):
         self.studentExamsList = StudentsExamList ( examList, examData, self.teacherId, self.close )
         self.layout.addWidget (self.studentExamsList)
 
+
+class examsManage ( QWidget ):
+    def __init__ ( self ):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+
+        self.layout.addWidget ( QLabel ("Управления экзаменами") )
+        self.setWindowTitle ("Управление экзаменами")
+
+        self.cabinets = connect.getExamGradetype ()
+        self.tableWidget = tableWidget ( headers = ["Название экзамена", "ID Экзамена", "Название профиля", "ID профиля", "Профильный(Да/Нет)"], columns = self.cabinets, vertical = False)
+        self.layout.addWidget (self.tableWidget)
+        self.insertCabinetButton = QPushButton ("Добавить экзамен")
+        self.insertCabinetButton.clicked.connect ( self.insertCabinet )
+        self.layout.addWidget ( self.insertCabinetButton )
+        self.deleteExamCabinet = QPushButton ("Удалить экзамен")
+        self.deleteExamCabinet.clicked.connect ( self.deleteCabinet )
+        self.layout.addWidget ( self.deleteExamCabinet )
+
+    def refresh (self):
+        self.cabinets = connect.getExamGradetype ()
+        self.tableWidget.setTable ( self.cabinets, False )
+
+    def insertCabinet ( self ):
+        self.insertCabinetWindow = insertExamGradetype ( function = lambda: self.refresh() )
+        self.insertCabinetWindow.show()
+    def deleteCabinet ( self ):
+        self.insertCabinetWindow = deleteExamGradetype (function = lambda: self.refresh())
+        self.insertCabinetWindow.show()
+
+
 class mainMenu ( QWidget ):
     def __init__ (self, teacher_id):
         super (QWidget, self).__init__()
         self.layout = QVBoxLayout ()
         self.setLayout ( self.layout )
 
+        self.resize (300, 300)
+
         self.teacher = connect.getTeacher ( teacher_id = teacher_id )
         self.layout.addWidget ( QLabel ( str ( self.teacher[0][1]) ) )
         self.setWindowTitle ("Меню учителя")
         self.layout.addWidget ( QLabel ("Меню учителя:") )
+
+        self.examsetManageButton = QPushButton ( "Сформировать связки экзаменов" )
+        self.layout.addWidget (self.examsetManageButton ) 
         self.cabinetsButton = QPushButton ( "Управление кабинетами" )
         self.cabinetsButton.clicked.connect ( self.cabinetsManage )
         self.layout.addWidget ( self.cabinetsButton )
@@ -368,8 +473,14 @@ class mainMenu ( QWidget ):
         self.formListsButton = QPushButton ( "Сформировать екзамены" )
         self.formListsButton.clicked.connect ( self.makeExamLists )
         self.layout.addWidget ( self.formListsButton )
+        self.examsetManageButton.clicked.connect (self.examsManage)
         self.checkResultsButton = QPushButton ( "Просмотреть результаты" )
         self.layout.addWidget (self.checkResultsButton )
+
+
+    def examsManage (self):
+        self.examManageWindow = examsManage ()
+        self.examManageWindow.show()
 
     def makeExamLists ( self ):
         self.examListsWindow = makeExamList ()

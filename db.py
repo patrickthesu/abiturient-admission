@@ -15,6 +15,28 @@ class Connection ():
 
         self.cursor = self.connection.cursor()
 
+    def insertExamInstance (examid, cabinetid, profile, date):
+        self.cursor.execute (f"INSERT INTO exam_instances (cabinet_id, exam_id, profile, date) VALUES ({examid}, {cabinetid}, {profile}, {date});")
+        self.connection.commit ()
+        return True
+
+    def getExamGradetype (self):
+        self.cursor.execute ( "SELECT exams.name, exams.id, gradetypes.name, gradetypes.id, profile  FROM grade_exam_set JOIN exams ON exams.id = grade_exam_set.exam_id JOIN gradetypes ON grade_exam_set.gradetype_id=gradetypes.id;" )
+        return self.cursor.fetchall()
+
+    def insertExamGradetype (self, examid, gradetypeid, profile):
+        self.cursor.execute (f"INSERT INTO grade_exam_set (exam_id, gradetype_id, profile) VALUES ({examid}, {gradetypeid}, {profile});")
+        self.connection.commit ()
+        return True
+    def deleteExamGradetype (self, examid, gradetypeid):
+        self.cursor.execute (f"DELETE FROM grade_exam_set WHERE exam_id={examid} and gradetype_id = {gradetypeid};")
+        self.connection.commit ()
+        return True
+
+    def deleteCabinet (self, cabinetid):
+        self.cursor.execute ( f"DELETE FROM cabinets WHERE id = {cabinetid}" )
+        self.connection.commit ()
+        return True
 
     def getCities (self): 
         self.cursor.execute ( "SELECT * FROM cities;" )
@@ -37,9 +59,7 @@ class Connection ():
         self.connection.commit ()
         print ( "Succesfully inserted!" )
         return self.cursor.fetchone()
-        # self.cursor.execute ( f"INSERT INTO languageset (name, school_id) VALUES ({name}, {school});" )
 
-        #return self.cursor.fetchall()
     def getTeacher ( self, name = "No name", teacher_id = None ):
         if teacher_id != None:
             self.cursor.execute ( f"SELECT * FROM teachers WHERE id = '{teacher_id}';" )
@@ -80,9 +100,7 @@ class Connection ():
         l = l[:-1]
         self.cursor.execute ( f"""SELECT DISTINCT name, profile, exam_id FROM examlinks INNER JOIN exams ON exams.id = examlinks.exam_id;""" ) 
         examList = self.cursor.fetchall()
-        #print (examList)
         out = []
-        #profile = []
 
         for i in examList:
             if i [1] == True: out.append ( [str (i[0] + " профильный"), [i[2], i[1]]])

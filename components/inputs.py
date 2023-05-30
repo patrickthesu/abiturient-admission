@@ -1,5 +1,20 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QLineEdit
 
+class passwordInput (QWidget):
+    def __init__ (self):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout (self.layout)
+
+        self.edit = QLineEdit ()
+        self.edit.setEchoMode(QLineEdit.EchoMode.Password)
+ 
+        self.layout.addWidget (self.edit)
+
+    def __call__ (self):
+        return self.edit.text()
+
+
 class nameInput (QWidget):
     def __init__ (self):
         super (QWidget, self).__init__()
