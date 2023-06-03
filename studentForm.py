@@ -7,7 +7,12 @@ import db
 from components.inputs import nameInput, phoneEdit, adressEdit
 from components.selectWidgets import schoolSelect, languageSelect
 
-connect = db.Connection ()
+global DB_ERROR
+try:
+    connect = db.Connection ()
+    DB_ERROR = False
+except:
+    DB_ERROR = True
 
 class gradeTypes (QWidget):
     def __init__ (self):
@@ -150,6 +155,10 @@ class studentForm (QWidget):
 
 if __name__ == "__main__":
     app = QApplication ( sys.argv )
-    mv = studentForm ()
-    mv.show()
-    app.exec ()
+    if DB_ERROR:
+        self.errorWindow = errorWindow ()
+        self.errorWindow.errorTemplate ("Ошибка при подключении к базе данных.\nУведомите об этом администратора.") 
+    else:
+        mv = studentForm ()
+        mv.show()
+   app.exec ()

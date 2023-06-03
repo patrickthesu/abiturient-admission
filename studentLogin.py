@@ -2,12 +2,18 @@
 
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from kvqtlib.table import tableWidget
+from kvqtlib.errors import errorWindow
 import sys
 import db
 
 from components.inputs import passwordInput, nameInput, idInput
 
-connect = db.Connection ()
+global DB_ERROR
+try:
+    connect = db.Connection ()
+    DB_ERROR = False
+except:
+    DB_ERROR = True
 
 class examList (QWidget):
     def __init__ (self, selectedGradesIds = [], studentId = None ):
@@ -111,6 +117,10 @@ class studentLogin ( QWidget ):
 
 if __name__ == "__main__":
     app = QApplication ( sys.argv )
-    mv = studentLogin ()
-    mv.show()
+    if DB_ERROR:
+        self.errorWindow = errorWindow ()
+        self.errorWindow.errorTemplate ("Ошибка при подключении к базе данных.\nУведомите об этом администратора.") 
+    else:
+        mv = studentLogin ()
+        mv.show()
     app.exec ()

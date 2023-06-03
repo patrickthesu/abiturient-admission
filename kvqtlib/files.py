@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QPushButton, QGroupBox, QFrame
 from PyQt6.QtCore import pyqtSlot
-from errors import errorWindow
+from .errors import errorWindow
 import sys
 import os
 
@@ -12,7 +12,7 @@ class isolatedWidget ( QFrame ):
         self.setLayout ( self.layout )
 
 class selectWidget (isolatedWidget):
-    def __init__( self, path = os.getcwd(), function = lambda text: print ( text ) ):
+    def __init__( self, path = os.getcwd(), function = lambda text: print ( text )):
         super ( QWidget, self ).__init__()
 
         self.function = function
@@ -130,10 +130,11 @@ class selectWidget (isolatedWidget):
 
 
 class writeWidget ( QWidget ): 
-    def __init__( self, path = os.getcwd(), function = lambda: print ( "write here" ) ):
+    def __init__( self, path = os.getcwd(), function = lambda: print ( "write here" ), writeFunction = None):
         super ( QWidget, self ).__init__()
 
         self.function = function
+        self.writeFunction = writeFunction
         self.path = path
 
         self.layout = QVBoxLayout ()
@@ -259,6 +260,10 @@ class writeWidget ( QWidget ):
  
     
     def write ( self ):
+        if self.writeFunction:
+            self.writeFunction (self.focus, index = False)
+            return True
+
         try:
             with open ( self.focus , "w" ) as f:
                 f.write ( self.function() )

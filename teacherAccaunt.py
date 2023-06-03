@@ -3,13 +3,22 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QDateEdit 
 from PyQt6.QtCore import pyqtSlot, QDate
 from kvqtlib.table import tableWidget
+from kvqtlib.errors import errorWindow
+from kvqtlib.files import writeWidget
 from datetime import datetime
+from components.inputs import nameInput, passwordInput
+import pandas as pd
 import sys
 import db
 
-connect = db.Connection ()
 
-from components.inputs import nameInput, passwordInput
+global DB_ERROR
+try:
+    connect = db.Connection ()
+    DB_ERROR = False
+except:
+    DB_ERROR = True
+
 
 class teacherLogin ( QWidget):
     def __init__ (self, function = lambda: print("Not setted function") ):
@@ -51,8 +60,7 @@ class teacherLogin ( QWidget):
             teacher = connect.getTeacher ( name )
             if password == teacher[0][2]: 
                 self.function ( teacher[0][0] )
-            else:
-                return self.errorLabel.show() 
+            else: return self.errorLabel.show() 
         except:
             return self.errorLabel.show()
         self.close()
@@ -94,7 +102,7 @@ class insertExamGradetype (QWidget):
             print (err)
 
 class deleteExamGradetype (QWidget):
-    def __init__ (self, function = lambda: print ("Succesfully added !")): 
+    def __init__ (self, function = lambda: print ("Succesfully deleted!")): 
         super (QWidget, self).__init__()
         self.layout = QVBoxLayout ()
         self.setLayout ( self.layout )
@@ -122,6 +130,9 @@ class deleteExamGradetype (QWidget):
             self.function ()
             self.close()
         except Exception as err:
+            self.errorWindow = errorWindow ()
+            self.errorWindow.errorTemplate ("Ошибка при удалении, убедись что такой индекс существует в таблице.")
+            self.errorWindow.show ()
             print ("ERROR while deleting gradetype")
             print (err)
 
@@ -152,6 +163,47 @@ class deleteCabinet (QWidget):
             print ("ERROR while deleting gradetype")
             print (err)
 
+class makeGroups (QWidget):
+    def __init__ (self):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout )
+
+        self.allExams = connect.getgradetypes ()
+        self.examsCombo = QComboBox ()
+
+        for exam in self.allExams:
+            self.examsCombo.addItem ( exam[1], userData = exam[0] )
+ 
+        examData = self.examsCombo.currentData ()
+        
+        studentsList = connect.getFullGrade ( examData [0], examData[1] )  
+        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Средняя оценка': studentsList[2]}
+        self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Средняя оценка", "Зачислен(а)"], columns = studentsList, vertical = False)
+        self.layout.addWidget (self.tableWidget)
+ 
+        self.layout.addWidget ( self.examsCombo )
+        self.examsCombo.currentIndexChanged.connect ( self.setTable )
+
+        self.exportButton = QPushButton ("Экспортировать в таблицу")
+        self.layout.addWidget (self.exportButton)
+        self.exportButton.clicked.connect (self.exportTable)
+
+    def setTable ( self ):
+        examData = self.examsCombo.currentData ()
+        studentsList = connect.getFullExam ( examData [0], examData[1] ) 
+        self.tableWidget.setTable ( studentsList, vertical = False )
+        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Кабинет': studentsList[2],'Оценка': studentsList[3]}
+
+    def exportTable (self):
+        self.writeWidget = writeWidget (writeFunction = self.writeFile)
+        self.writeWidget.show()
+
+    def writeFile (self, filename):
+        df = pd.DataFrame(self.data)
+        df.to_excel (filename + ".xlsx")
+
+
 
 
 
@@ -166,19 +218,34 @@ class showExamLists (QWidget):
 
         for exam in self.allExams:
             self.examsCombo.addItem ( exam[0], userData = exam[1] )
-
+ 
         examData = self.examsCombo.currentData ()
+        
         studentsList = connect.getFullExam ( examData [0], examData[1] )  
-        self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Адресс", "Кабинет"], columns = studentsList, vertical = False)
+        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Кабинет': studentsList[2],'Оценка': studentsList[3]}
+        self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Кабинет", "Оценка"], columns = studentsList, vertical = False)
         self.layout.addWidget (self.tableWidget)
  
         self.layout.addWidget ( self.examsCombo )
         self.examsCombo.currentIndexChanged.connect ( self.setTable )
 
+        self.exportButton = QPushButton ("Экспортировать в таблицу")
+        self.layout.addWidget (self.exportButton)
+        self.exportButton.clicked.connect (self.exportTable)
+
     def setTable ( self ):
         examData = self.examsCombo.currentData ()
         studentsList = connect.getFullExam ( examData [0], examData[1] ) 
         self.tableWidget.setTable ( studentsList, vertical = False )
+        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Кабинет': studentsList[2],'Оценка': studentsList[3]}
+
+    def exportTable (self):
+        self.writeWidget = writeWidget (writeFunction = self.writeFile)
+        self.writeWidget.show()
+
+    def writeFile (self, filename):
+        df = pd.DataFrame(self.data)
+        df.to_excel (filename + ".xlsx")
 
 
 class makeExamList ( QWidget ):
@@ -201,7 +268,7 @@ class makeExamList ( QWidget ):
 
     def autoGenerate (self):
         self.close ()
-        connect.makeAutoAllExams ()
+        connect.makeAutoAllExams (self.date.date().toString("yyyy.MM.dd"))
         self.examLists = showExamLists ()
         self.examLists.show ()
 
@@ -243,7 +310,7 @@ class SetMark ( QWidget ):
         super (QWidget, self).__init__()
         self.layout = QVBoxLayout ()
         self.setLayout (self.layout)
-self.examId = examId
+        self.examId = examId
         self.profile = profile
         self.student = student
         self.function = function
@@ -347,8 +414,6 @@ class StudentsExamList ( QWidget ):
         sender = self.sender()
         sender.hide ()
  
-        # print ( sender.data )
-
         self.setMark = SetMark ( self.examData[0], self.examData[1], sender.data, lambda: self.endExam () if self.isFinal () else None )        
         self.setMark.show()
 
@@ -443,6 +508,7 @@ class examsManage ( QWidget ):
     def insertCabinet ( self ):
         self.insertCabinetWindow = insertExamGradetype ( function = lambda: self.refresh() )
         self.insertCabinetWindow.show()
+
     def deleteCabinet ( self ):
         self.insertCabinetWindow = deleteExamGradetype (function = lambda: self.refresh())
         self.insertCabinetWindow.show()
@@ -473,9 +539,12 @@ class mainMenu ( QWidget ):
         self.formListsButton.clicked.connect ( self.makeExamLists )
         self.layout.addWidget ( self.formListsButton )
         self.examsetManageButton.clicked.connect (self.examsManage)
-        self.checkResultsButton = QPushButton ( "Просмотреть результаты" )
+        self.checkResultsButton = QPushButton ( "Списки по экзаменам" )
+        self.checkResultsButton.clicked.connect ( self.getResults )
         self.layout.addWidget (self.checkResultsButton )
-
+        self.getGroupsButton = QPushButton ( "Сформировать группы для зачисления" )
+        self.getGroupsButton.clicked.connect ( self.getGroups )
+        self.layout.addWidget (self.getGroupsButton )
 
     def examsManage (self):
         self.examManageWindow = examsManage ()
@@ -489,15 +558,30 @@ class mainMenu ( QWidget ):
         self.cabinetsManageWindow = cabinetsManage ()
         self.cabinetsManageWindow.show()
 
+    def getResults (self):
+        self.examLists = showExamLists ()
+        self.examLists.show ()
+
     def makeExam ( self ):
         self.exam = Exam ()
         self.exam.show()
 
+    def getGroups ( self ):
+        self.groups = makeGroups ()
+        self.groups.show()
+
+
 class main ():
     def __init__ (self):
         self.app = QApplication ( sys.argv )
-        self.login = teacherLogin ( lambda teacher_id: self.logined (teacher_id) )
-        self.login.show()
+        global DB_ERROR
+        if DB_ERROR:
+            self.errorWindow = errorWindow ()
+            self.errorWindow.errorTemplate ("Ошибка при подключении к базе данных.\nУведомите об этом администратора.")
+            self.errorWindow.show ()
+        else:
+            self.login = teacherLogin ( lambda teacher_id: self.logined (teacher_id) )
+            self.login.show()
         self.app.exec()
     def logined (self, teacher_id):
         try:

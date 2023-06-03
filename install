@@ -4,7 +4,7 @@ import subprocess
 import sys
 import os
 
-deps = [ "psycopg2", "pyqt6" ]
+deps = [ "psycopg2", "pyqt6", "pandas", "pd", "openpyxl", ]
 
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
