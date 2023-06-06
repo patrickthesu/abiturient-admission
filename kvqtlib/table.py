@@ -1,6 +1,13 @@
 from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem, QWidget, QHBoxLayout, QHeaderView
 
 class tableWidget ( QWidget ):
+    def setHeaders ( self, headers = []):
+        for i in range ( 0, len ( headers ) ):
+             self.table.setHorizontalHeaderItem ( i, QTableWidgetItem ( headers[i] ) )       
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
     def setTable ( self, columns, vertical = True ):
         if vertical:
             self.table.setColumnCount ( len ( columns ) )
@@ -25,20 +32,13 @@ class tableWidget ( QWidget ):
 
     def __init__ ( self, headers = [], columns = [[]], title = "Таблица", vertical = True ):
         super ( QWidget, self ).__init__ ()
-        self.w = 300
-        self.h = 400
 
         self.layout = QHBoxLayout ()
 
         self.table = QTableWidget ()
 
         self.setTable ( columns, vertical )
-
-        for i in range ( 0, len ( headers ) ):
-             self.table.setHorizontalHeaderItem ( i, QTableWidgetItem ( headers[i] ) )       
-
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.setHeaders ( headers )
 
         self.setLayout ( self.layout )
         self.setWindowTitle ( title )

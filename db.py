@@ -65,6 +65,11 @@ class Connection ():
         print ( "Succesfully inserted!" )
         return self.cursor.fetchone()
 
+    def setSucces (self, studentId: int, gradeId: int, success: bool):
+        self.cursor.execute ( f"""UPDATE gradeset SET succesfull = {success} WHERE student_id = {studentId} and grade_id = {gradeId};""" )
+        self.connection.commit ()
+        return True
+
     def getTeacher ( self, name = "No name", teacher_id = None ):
         if teacher_id != None:
             self.cursor.execute ( f"SELECT * FROM teachers WHERE id = '{teacher_id}';" )
@@ -72,9 +77,6 @@ class Connection ():
             self.cursor.execute ( f"SELECT * FROM teachers WHERE name = '{name}';" )
         return self.cursor.fetchall()
 
-    #def getAllStudentsByExam ( self, examId ):
-        
- 
     def insertGradeSets ( self, studentId, grades ):
         values = ""
         for grade in grades:
@@ -84,7 +86,7 @@ class Connection ():
         self.connection.commit ()
         print ( "Succesfully inserted!" )
 
-    def getgradetypes (self):
+    def getGradeTypes (self):
         self.cursor.execute ( f"SELECT * FROM gradetypes;" )
         return self.cursor.fetchall()
 
@@ -144,7 +146,6 @@ class Connection ():
         for examset in self.getRequiredExams ():
             examInstances.append (self.insertExamInstance ( examset[0], examset[1], date))
             examSets.append (examset)
-            #date += timedelta(days = 1)
 
 
         for student in self.getNotExamedStudents ():
@@ -163,24 +164,49 @@ class Connection ():
         
 
 
-    #def setExamInstanceForStudent ()
     def insertExamInstanceStudent (self, student_id, exam_id, cabinetId):
         self.cursor.execute ( f"INSERT INTO exam_instance_student (student_id, exam_instance_id, cabinet_id) VALUES ('{student_id}', {exam_id}, '{cabinetId}');" )
         self.connection.commit ()
         print ( "Succesfully inserted!" )
         return True
 
+    def getStudentsByGradetype (self, gradetype_id):
+        self.cursor.execute (f""" select students.name, students.id from gradeset join students on students.id = gradeset.student_id where grade_id = {gradetype_id} and succesfull is Null;""")
+        return self.cursor.fetchall()
+
     def getExamsCabinetsList ( self, student_id ):
         self.cursor.execute (f"SELECT exams.name, profile, cabinets.name, mark FROM examcabinets INNER JOIN cabinets ON cabinets.id = examcabinets.cabinet_id INNER JOIN exams ON examcabinets.exam_id = exams.id WHERE student_id = {student_id} ;")
         return self.cursor.fetchall()
  
+    def getFullGrade ( self, grade_id ):
+        self.cursor.execute ( f"""select students.name, students.phone, gradeset.succesfull, exam_instances.exam_id, mark from gradeset join grade_exam_set on gradeset.grade_id = grade_exam_set.gradetype_id join exam_instances on exam_instances.exam_id = grade_exam_set.exam_id join exam_instance_student on exam_instance_student.student_id = gradeset.student_id and exam_instances.id = exam_instance_student.exam_instance_id join students on exam_instance_student.student_id = students.id where grade_id = {grade_id};""");
+        studentsList = self.cursor.fetchall ()
+        out = []
+        currentStudent = ""
+        for student in studentsList:
+            if student[0] != currentStudent:
+                currentStudent = student[0]
+                out.append (list(*[student[:3]]))
+            if len(out[len(out)-1]) == 6: continue
+            out[len(out)-1].append(student[4])
+
+        for i in range(len(out)): 
+            out[i].append (round(sum(list(map(lambda x: 0 if x is None else x, out[i][3:])))/3, 2))
+        return out
 
     def getFullExam ( self, exam_id, profile, withId = False):
-        print (exam_id)
-        self.cursor.execute (f"SELECT students.name, students.phone, cabinets.name, mark FROM exam_instances FULL JOIN exam_instance_student ON exam_instance_student.exam_instance_id = exam_instances.id FULL JOIN students on students.id = exam_instance_student.student_id FULL JOIN cabinets on cabinets.id = exam_instance_student.cabinet_id where exam_id = {exam_id} and profile = {profile};")
-        #else : self.cursor.execute (f"SELECT students.id, students.name, students.phone, students.adress, cabinets.name FROM exam_instances FULL JOIN exam_instance_student ON exam_instance_student.exam_instance_id = exam_instances.id JOIN students on students.id = exam_instance_student.student_id JOIN cabinets on cabinets.id = exam_instance_student.cabinet_id WHERE exam_instances.id = {exam_id} and exam_instances.profile = {profile} AND mark is null;")
-        exam = self.cursor.fetchall()
-        return exam
+        if not withId:
+            self.cursor.execute (f"SELECT students.name, students.phone, cabinets.name, mark FROM exam_instances FULL JOIN exam_instance_student ON exam_instance_student.exam_instance_id = exam_instances.id FULL JOIN students on students.id = exam_instance_student.student_id FULL JOIN cabinets on cabinets.id = exam_instance_student.cabinet_id where exam_id = {exam_id} and profile = {profile};")
+            return self.cursor.fetchall()
+
+        else:
+            self.cursor.execute (f"SELECT students.id, students.name, students.phone, cabinets.id, cabinets.name, mark FROM exam_instances FULL JOIN exam_instance_student ON exam_instance_student.exam_instance_id = exam_instances.id FULL JOIN students on students.id = exam_instance_student.student_id FULL JOIN cabinets on cabinets.id = exam_instance_student.cabinet_id where exam_id = {exam_id} and profile = {profile};")
+ 
+            examsList = self.cursor.fetchall()
+            dictList = []
+            for exam in examsList: 
+                dictList.append ({"student_id": exam[0], "student_name": exam[1], "student_phone": exam[2], "cabinet_id": exam[3], "cabinet_name": exam[4], "mark": exam[5]})
+            return dictList
      
     def getAllExams (self):
         self.cursor.execute ("SELECT exam_id, profile FROM examlinks;")
@@ -313,6 +339,23 @@ class Connection ():
         self.cursor.execute ( f"DELETE FROM examcabinets;" )
         self.connection.commit ()
 
+    def getExamsByGrade (self, gradeId: int):
+        self.cursor.execute ( f"""select name, profile from grade_exam_set join exams on exams.id = grade_exam_set.exam_id where gradetype_id = {gradeId};""")
+
+        examList = self.cursor.fetchall()
+        out = []
+        profile = []
+
+        for exam in examList:
+            if not ( exam[0] in out ):
+                out.append ( exam[0] )
+                if exam[1]: profile.append ( len (out) - 1 )
+
+        for i in profile:
+            out[i] += " профильный" 
+
+        return out
+
     def getStudent ( self, student_id ):
         self.cursor.execute ( f"select * from students where id = {student_id};" )
         return self.cursor.fetchall()
@@ -386,7 +429,6 @@ class Connection ():
         if self.connection:
             self.connection.close()
             self.cursor.close()
-
 
 if __name__ == "__main__":
     c = Connection ()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QDateEdit 
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QDateEdit 
 from PyQt6.QtCore import pyqtSlot, QDate
 from kvqtlib.table import tableWidget
 from kvqtlib.errors import errorWindow
@@ -169,31 +169,68 @@ class makeGroups (QWidget):
         self.layout = QVBoxLayout ()
         self.setLayout ( self.layout )
 
-        self.allExams = connect.getgradetypes ()
-        self.examsCombo = QComboBox ()
+        self.allGroups = connect.getGradeTypes ()
+        self.groupCombo = QComboBox ()
 
-        for exam in self.allExams:
-            self.examsCombo.addItem ( exam[1], userData = exam[0] )
+        for exam in self.allGroups:
+            self.groupCombo.addItem ( exam[1], userData = exam[0] )
  
-        examData = self.examsCombo.currentData ()
-        
-        studentsList = connect.getFullGrade ( examData [0], examData[1] )  
-        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Средняя оценка': studentsList[2]}
-        self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Средняя оценка", "Зачислен(а)"], columns = studentsList, vertical = False)
+        self.tableWidget = tableWidget ()
         self.layout.addWidget (self.tableWidget)
+
+        self.setTable ()
  
-        self.layout.addWidget ( self.examsCombo )
-        self.examsCombo.currentIndexChanged.connect ( self.setTable )
+        self.layout.addWidget ( self.groupCombo )
+        self.groupCombo.currentIndexChanged.connect ( self.setTable )
+
+        self.bottomLayout = QHBoxLayout ()
+
+        self.bottomWidget = QWidget ()
+        self.bottomWidget.setLayout (self.bottomLayout)
+        self.layout.addWidget (self.bottomWidget)
 
         self.exportButton = QPushButton ("Экспортировать в таблицу")
-        self.layout.addWidget (self.exportButton)
         self.exportButton.clicked.connect (self.exportTable)
+        self.bottomLayout.addWidget (self.exportButton)
+
+        self.updateButton = QPushButton ("Обновить страницу")
+        self.updateButton.clicked.connect (self.setTable)
+        self.bottomLayout.addWidget (self.updateButton)
+
+        self.getStudetnForSuccessButton = QPushButton ("Рекомендовать/Не рекомендовать к поступлению")
+        self.getStudetnForSuccessButton.clicked.connect (self.getStudetnForSuccess)
+        self.layout.addWidget (self.getStudetnForSuccessButton)
+
+    def getStudetnForSuccess (self):
+        groupData = self.groupCombo.currentData ()
+        self.studentSuccess = StudentsSuccesSelecting (groupData)
+        self.studentSuccess.show ()
 
     def setTable ( self ):
-        examData = self.examsCombo.currentData ()
-        studentsList = connect.getFullExam ( examData [0], examData[1] ) 
-        self.tableWidget.setTable ( studentsList, vertical = False )
-        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Кабинет': studentsList[2],'Оценка': studentsList[3]}
+        groupData = self.groupCombo.currentData ()
+
+        exams = connect.getExamsByGrade (groupData)
+
+        headers = ["Имя", "Номер телефона", ]
+        headers.append ("Зачислен(а)")
+        for exam in exams:
+            headers.append (exam) 
+        headers.append ("Средняя оценка")
+
+        studentsList = connect.getFullGrade ( groupData )  
+        
+        self.tableWidget.setTable (columns = studentsList, vertical = False)
+        self.tableWidget.setHeaders (headers)
+
+
+        #self.data = {'Имя': [],'Номер':[],'Кабинет': [],'Средняя оценка': []}
+        #for student in studentList:
+            #self.data['Имя'].append (student[0])
+            #self.data['Номер'].append(student[1])
+            #self.data['Средняя оценка'].append(student[2])
+
+    #def setStudentsStatus (self):
+
 
     def exportTable (self):
         self.writeWidget = writeWidget (writeFunction = self.writeFile)
@@ -202,10 +239,6 @@ class makeGroups (QWidget):
     def writeFile (self, filename):
         df = pd.DataFrame(self.data)
         df.to_excel (filename + ".xlsx")
-
-
-
-
 
 class showExamLists (QWidget):
     def __init__ (self):
@@ -221,8 +254,14 @@ class showExamLists (QWidget):
  
         examData = self.examsCombo.currentData ()
         
-        studentsList = connect.getFullExam ( examData [0], examData[1] )  
-        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Кабинет': studentsList[2],'Оценка': studentsList[3]}
+        studentsList = connect.getFullExam ( examData [0], examData[1] )
+
+        self.data = {'Имя': [],'Номер':[],'Кабинет': [],'Оценка': []}
+        for student in studentsList:
+            self.data['Имя'].append (student[0])
+            self.data['Номер'].append(student[1])
+            self.data['Оценка'].append(student[2])
+
         self.tableWidget = tableWidget ( headers = ["Имя", "Номер телефона", "Кабинет", "Оценка"], columns = studentsList, vertical = False)
         self.layout.addWidget (self.tableWidget)
  
@@ -230,14 +269,33 @@ class showExamLists (QWidget):
         self.examsCombo.currentIndexChanged.connect ( self.setTable )
 
         self.exportButton = QPushButton ("Экспортировать в таблицу")
-        self.layout.addWidget (self.exportButton)
         self.exportButton.clicked.connect (self.exportTable)
+
+        self.bottomLayout = QHBoxLayout ()
+
+        self.bottomWidget = QWidget ()
+        self.bottomWidget.setLayout (self.bottomLayout)
+        self.layout.addWidget (self.bottomWidget)
+
+        self.exportButton = QPushButton ("Экспортировать в таблицу")
+        self.exportButton.clicked.connect (self.exportTable)
+        self.bottomLayout.addWidget (self.exportButton)
+
+        self.updateButton = QPushButton ("Обновить страницу")
+        self.updateButton.clicked.connect (self.setTable)
+        self.bottomLayout.addWidget (self.updateButton)
+
+
 
     def setTable ( self ):
         examData = self.examsCombo.currentData ()
-        studentsList = connect.getFullExam ( examData [0], examData[1] ) 
+        studentsList = connect.getFullExam ( examData [0], examData[1] )
         self.tableWidget.setTable ( studentsList, vertical = False )
-        self.data = {'Имя': studentsList[0],'Номер':studentsList[1],'Кабинет': studentsList[2],'Оценка': studentsList[3]}
+        self.data = {'Имя': [],'Номер':[],'Кабинет': [],'Оценка': []}
+        for student in studentsList:
+            self.data['Имя'].append (student[0])
+            self.data['Номер'].append(student[1])
+            self.data['Оценка'].append(student[2])
 
     def exportTable (self):
         self.writeWidget = writeWidget (writeFunction = self.writeFile)
@@ -305,8 +363,8 @@ class cabinetsManage ( QWidget ):
         self.deleteCabinetWindow = deleteCabinet ( function = lambda: self.refresh() )
         self.deleteCabinetWindow.show()
 
-class SetMark ( QWidget ):
-    def __init__ (self, examId, profile, student, function = lambda: print ( "ERROR: invalid SetMark init" )):
+class SetMarkWidget ( QWidget ):
+    def __init__ (self, examId, profile, student, function = lambda: print ( "ERROR: invalid SetMarkWidget init" )):
         super (QWidget, self).__init__()
         self.layout = QVBoxLayout ()
         self.setLayout (self.layout)
@@ -316,7 +374,7 @@ class SetMark ( QWidget ):
         self.function = function
 
         self.layout.addWidget ( QLabel ("Поставить оценку за екзамен для:") )
-        self.layout.addWidget ( QLabel (str ( self.student[1] )) )
+        self.layout.addWidget ( QLabel (str ( self.student["student_name"] )) )
 
         self.markInput = QSpinBox ()
         self.markInput.setMinimum (0)
@@ -329,7 +387,7 @@ class SetMark ( QWidget ):
 
     def setMark (self):
         try:
-            connect.setMark ( self.markInput.value(), self.student[0], self.examId, self.profile )
+            connect.setMark ( self.markInput.value(), self.student["student_id"], self.examId, self.profile )
             self.close ()
             self.function ()
         except Exception as err:
@@ -381,6 +439,94 @@ class insertCabinet ( QWidget ):
             print (err)
 
 
+class StudentsSuccesSelecting ( QWidget ):
+    def __init__ ( self, gradetype_id: int ):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout ( self.layout ) 
+
+        self.layout.addWidget (QLabel ("Выберите ученика, которого хотели оценить."))
+        
+        self.gradetype_id = gradetype_id
+
+        self.studentsList = connect.getStudentsByGradetype (self.gradetype_id)
+        self.students = []
+
+        for student in self.studentsList:
+            studentButton = QPushButton ( student[0] )
+            studentButton.data = student
+            studentButton.clicked.connect ( self.setSuccess )
+            self.students.append (studentButton)
+            self.layout.addWidget (studentButton)
+
+    def isFinal (self):
+        for studentButton in self.students:
+           if not studentButton.isHidden() : 
+                return False
+        return True
+
+    @pyqtSlot ()
+    def setSuccess (self):
+        sender = self.sender()
+        sender.hide ()
+ 
+        self.setMark = SetSuccessWidget ( sender.data, self.gradetype_id, lambda: self.endExam () if self.isFinal () else None )
+        self.setMark.show()
+
+    def endExam (self):
+        print ( "Ending..." )
+
+        self.endWidget = QWidget ()
+
+        layout = QVBoxLayout ()
+        layout.addWidget ( QLabel( "Поздравляем вас!\nВы оценили всех учеников." ) )
+        closeButton = QPushButton ( "Oк" )
+        closeButton.clicked.connect ( lambda: self.endWidget.close () )
+        layout.addWidget ( closeButton )
+
+        self.endWidget.setLayout (layout)
+        self.endWidget.setWindowTitle ("Конец")
+
+        self.close ()
+        self.endWidget.show()
+
+class SetSuccessWidget ( QWidget ):
+    def __init__ (self, student, gradetype_id, function = lambda: print ( "ERROR: invalid SetMarkWidget init" )):
+        super (QWidget, self).__init__()
+        self.layout = QVBoxLayout ()
+        self.setLayout (self.layout)
+        self.student = student
+        self.gradetype_id = gradetype_id
+        self.function = function
+
+        self.layout.addWidget ( QLabel ("Выберите рекомендацию к зачислению студента:") )
+        self.layout.addWidget ( QLabel (str( self.student[0] )) )
+
+        self.setSuccessButton = QPushButton ("Рекомендован к зачислению")
+        self.layout.addWidget (self.setSuccessButton )
+        self.setSuccessButton.clicked.connect (self.successStudent)
+        self.setUnsuccessButton = QPushButton ("Не рекомендован к зачислению")
+        self.layout.addWidget (self.setUnsuccessButton )
+        self.setUnsuccessButton.clicked.connect (self.unsuccessStudent)
+
+    def successStudent (self):
+        try:
+            connect.setSucces ( self.student[1], self.gradetype_id, True )
+            self.close ()
+            self.function ()
+        except Exception as err:
+            print ( "ERROR: on setting mark" )
+            print ( err )
+
+    def unsuccessStudent (self):
+        try:
+            connect.setSucces ( self.student[1], self.gradetype_id, False )
+            self.close ()
+            self.function ()
+        except Exception as err:
+            print ( "ERROR: on setting mark" )
+            print ( err )
+
 
 class StudentsExamList ( QWidget ):
     def __init__ ( self, examList, examData, teacherId = None, endParent = lambda: print ( "ERROR: Invalid studentExamList init" ) ):
@@ -397,7 +543,7 @@ class StudentsExamList ( QWidget ):
         self.students =  []
 
         for student in self.examList:
-            studentButton = QPushButton ( student[1] )
+            studentButton = QPushButton ( student["student_name"] )
             studentButton.data = student
             studentButton.clicked.connect ( self.takeExam )
             self.students.append ( studentButton )
@@ -414,7 +560,7 @@ class StudentsExamList ( QWidget ):
         sender = self.sender()
         sender.hide ()
  
-        self.setMark = SetMark ( self.examData[0], self.examData[1], sender.data, lambda: self.endExam () if self.isFinal () else None )        
+        self.setMark = SetMarkWidget ( self.examData[0], self.examData[1], sender.data, lambda: self.endExam () if self.isFinal () else None )        
         self.setMark.show()
 
     def endExam (self):
@@ -545,6 +691,11 @@ class mainMenu ( QWidget ):
         self.getGroupsButton = QPushButton ( "Сформировать группы для зачисления" )
         self.getGroupsButton.clicked.connect ( self.getGroups )
         self.layout.addWidget (self.getGroupsButton )
+
+        self.exitButton = QPushButton ( "Выйти из приложения" )
+        self.exitButton.clicked.connect ( self.close )
+        self.layout.addWidget (self.exitButton )
+        self.exitButton.setStyleSheet ("color: rgb(255, 178, 178);")
 
     def examsManage (self):
         self.examManageWindow = examsManage ()
