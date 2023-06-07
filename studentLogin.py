@@ -42,19 +42,20 @@ class studentAccount (QWidget):
         super (QWidget, self).__init__ ()
         self.layout = QVBoxLayout ()
         self.setLayout (self.layout)
-        self.setWindowTitle ( "Личный кабинет" )
+        self.setWindowTitle ("Личный кабинет")
 
         self.layout.addWidget ( QLabel ( "Добро пожаловать, " + studentName ) )
 
         exams = connect.getExamsCabinetsList ( studentId )
         if len ( exams ) == 0:
             self.layout.addWidget (QLabel ("Похоже вас ещё не распределили =("))
-            self.examList = examList ( studentId = studentId )
+            self.examList = examList (studentId = studentId )
             self.layout.addWidget ( self.examList )
             print ( "No exams" )
             return 
  
-        self.table = tableWidget ( ["Екзамен", "Профильный", "Кабинет", "Оценка"], exams, vertical = False )
+        self.layout.addWidget ( QLabel ("Ваш список экаменов"))
+        self.table = tableWidget ( ["Екзамен", "Профильный", "Кабинет", "Дата", "Оценка"], exams, vertical = False )
         self.layout.addWidget ( self.table )
 
 

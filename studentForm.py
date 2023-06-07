@@ -161,4 +161,4 @@ if __name__ == "__main__":
     else:
         mv = studentForm ()
         mv.show()
-   app.exec ()
+    app.exec ()

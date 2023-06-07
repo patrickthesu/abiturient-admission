@@ -174,8 +174,8 @@ class Connection ():
         self.cursor.execute (f""" select students.name, students.id from gradeset join students on students.id = gradeset.student_id where grade_id = {gradetype_id} and succesfull is Null;""")
         return self.cursor.fetchall()
 
-    def getExamsCabinetsList ( self, student_id ):
-        self.cursor.execute (f"SELECT exams.name, profile, cabinets.name, mark FROM examcabinets INNER JOIN cabinets ON cabinets.id = examcabinets.cabinet_id INNER JOIN exams ON examcabinets.exam_id = exams.id WHERE student_id = {student_id} ;")
+    def getExamsCabinetsList ( self, studentId ):
+        self.cursor.execute (f"""select exams.name, profile, cabinets.name, date,  mark from students join exam_instance_student on exam_instance_student.student_id = students.id join exam_instances on exam_instances.id = exam_instance_student.exam_instance_id join exams on exams.id = exam_instances.exam_id join cabinets on cabinets.id = exam_instance_student.cabinet_id where students.id = {studentId};""")
         return self.cursor.fetchall()
  
     def getFullGrade ( self, grade_id ):
